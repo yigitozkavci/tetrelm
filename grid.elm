@@ -5,7 +5,6 @@ import Color exposing (..)
 import Board exposing (..)
 import Location exposing (Location)
 
-
 toFloatPos : Location -> (Float, Float)
 toFloatPos location =
   let (x, y) = location in
