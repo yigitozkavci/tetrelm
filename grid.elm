@@ -3,40 +3,52 @@ import Collage exposing (..)
 import Element exposing (..)
 import Color exposing (..)
 import Board exposing (..)
+import Location exposing (Location)
 
 
-toGridLineX : Board -> Float -> Form
-toGridLineX board x =
-  traced { defaultLine | color = blue } (segment (board.tileSize * x, 0) (board.tileSize * x, -board.height))
+toFloatPos : Location -> (Float, Float)
+toFloatPos location =
+  let (x, y) = location in
+    (toFloat x, toFloat y)
 
 
-toGridLineY : Board -> Float -> Form
-toGridLineY board y =
-  traced { defaultLine | color = blue } (segment (0, -y * board.tileSize) (board.width, -y * board.tileSize))
+intSegment : Location -> Location -> Path
+intSegment beginLocation endLocation =
+    segment (toFloatPos beginLocation) (toFloatPos endLocation)
 
 
-generateGridLines : Board -> List Form
-generateGridLines board =
-  List.append (generateGridLineX board [] 1) (generateGridLineY board [] 1)
+toGridLineX : Int -> Form
+toGridLineX x =
+  traced { defaultLine | color = blue } (intSegment (board.tileSize * x, 0) (board.tileSize * x, -board.height))
 
 
-generateGridLineX : Board -> List Form -> Float -> List Form
-generateGridLineX board formList iterator =
-  if iterator < board.width / board.tileSize + 1 then
-    generateGridLineX board (toGridLineX board iterator :: formList) (iterator + 1)
+toGridLineY : Int -> Form
+toGridLineY y =
+  traced { defaultLine | color = blue } (intSegment (0, -y * board.tileSize) (board.width, -y * board.tileSize))
+
+
+generateGridLineX : List Form -> Int -> List Form
+generateGridLineX formList iterator =
+  if iterator < board.width // board.tileSize + 1 then
+    generateGridLineX (toGridLineX iterator :: formList) (iterator + 1)
   else
     formList
 
 
-generateGridLineY : Board -> List Form -> Float -> List Form
-generateGridLineY board formList iterator =
-  if iterator < board.height / board.tileSize + 1 then
-    generateGridLineY board (toGridLineY board iterator :: formList) (iterator + 1)
+generateGridLineY : List Form -> Int -> List Form
+generateGridLineY formList iterator =
+  if iterator < board.height // board.tileSize + 1 then
+    generateGridLineY (toGridLineY iterator :: formList) (iterator + 1)
   else
     formList
 
 
-gridLines : Board -> Form
-gridLines board =
-  generateGridLines board |> group
+generateGridLines : List Form
+generateGridLines =
+  List.append (generateGridLineX [] 1) (generateGridLineY [] 1)
+
+
+gridLines : Form
+gridLines =
+  generateGridLines |> group
 

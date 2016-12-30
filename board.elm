@@ -3,7 +3,15 @@ import Element exposing (..)
 import Collage exposing (Form)
 
 type alias Board =
-  { width : Float
-  , height : Float
-  , tileSize : Float
+  { width : Int
+  , height : Int
+  , tileSize : Int
+  }
+
+
+board : Board
+board =
+  { width = 300
+  , height = 600
+  , tileSize = 30
   }
