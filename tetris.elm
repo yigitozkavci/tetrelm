@@ -24,6 +24,7 @@ main =
 type alias Model =
   { shapes : List Shape
   , pieceInterval : Int
+  , board : List (List Location)
   }
 
 
@@ -31,6 +32,7 @@ model : Model
 model =
   { shapes = []
   , pieceInterval = 1
+  , board = [[]]
   }
 
 
@@ -38,7 +40,12 @@ init =
   (model, Cmd.none)
 
 
-type Msg = Tick Time | EmptyMsg | RandomXPos Int | RandomType Int Int | RandomRotate Int ShapeType Int
+type Msg =
+  Tick Time
+  | EmptyMsg
+  | RandomXPos Int
+  | RandomType Int Int
+  | RandomRotate Int ShapeType Int
 
 
 dropOnePixel : Shape -> Shape
@@ -56,10 +63,12 @@ decodeShapeType encodedType =
     5 -> T
     _ -> L
 
+
 rotate : Location -> Location
 rotate location =
   let (x, y) = location in
       (-y, x)
+
 
 rotateBy : Int -> Shape -> Shape
 rotateBy rotateAmount shape =
@@ -67,6 +76,7 @@ rotateBy rotateAmount shape =
     shape
   else
     rotateBy (rotateAmount - 1) { shape | blockLocations = (List.map rotate shape.blockLocations) }
+
 
 generateNewPiece : Int -> ShapeType -> Int -> Model -> Shape
 generateNewPiece xPos shapeType rotateAmount model =
@@ -81,11 +91,14 @@ isLocationAllowed location =
    let (x, _) = location in
      x >= 0 && x < 10 
 
+
 positionAllowed : Int -> Shape -> Bool
 positionAllowed xPos shape =
   List.map isLocationAllowed (Shape.withShiftedLocations shape).blockLocations
     |> List.foldr (&&) True
 
+
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick time ->
