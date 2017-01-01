@@ -12,55 +12,70 @@ type alias Shape =
   { x : Int
   , y : Int
   , shapeType : ShapeType
+  , blockLocations : List Location
   }
 
 
-blockShapeLocations : Location -> ShapeType -> List Location
-blockShapeLocations startingLocation shape =
-  case shape of
+initialBlockLocationsFor : ShapeType -> List Location
+initialBlockLocationsFor shapeType =
+  case shapeType of
     L ->
-      List.map (Location.shiftLocationBy startingLocation)
-        [ (0, 0)
-        , (1, 0)
-        , (2, 0)
-        , (0, 1)
-        ]
+      [ (0, -1)
+      , (0, 0)
+      , (0, 1)
+      , (1, 1)
+      ]
     RL ->
-      List.map (Location.shiftLocationBy startingLocation)
-        [ (0, 0)
-        , (1, 0)
-        , (2, 0)
-        , (2, 1)
-        ]
+      [ (0, -1)
+      , (0, 0)
+      , (0, 1)
+      , (-1, 1)
+      ]
     I ->
-      List.map (Location.shiftLocationBy startingLocation)
-        [ (0, 0)
-        , (0, 1)
-        , (0, 2)
-        , (0, 3)
-        ]
+      [ (0, -1)
+      , (0, 1)
+      , (0, 0)
+      , (0, 2)
+      ]
     S ->
-      List.map (Location.shiftLocationBy startingLocation)
-        [ (0, 0)
-        , (1, 0)
-        , (0, 1)
-        , (1, 1)
-        ]
+      [ (1, 0)
+      , (0, 1)
+      , (0, 0)
+      , (1, 1)
+      ]
     T ->
-      List.map (Location.shiftLocationBy startingLocation)
-        [ (0, 0)
-        , (1, 0)
-        , (2, 0)
-        , (1, 1)
-        ]
+      [ (0, 0)
+      , (1, 0)
+      , (0, 0)
+      , (2, 0)
+      , (1, 1)
+      ]
+
+
+withShiftedLocations : Shape -> Shape
+withShiftedLocations shape =
+  { shape | blockLocations = shiftLocationsBy shape.x shape.y shape.blockLocations }
+
+
+shiftLocationsBy : Int -> Int -> List Location -> List Location
+shiftLocationsBy x y locations =
+  List.map (\location ->
+    let (locX, locY) = location in
+      (x + locX, y + locY) 
+  ) locations
 
 
 shapeToForm : Shape -> Form
 shapeToForm shape =
-  List.map generateBlock (blockShapeLocations (shape.x, shape.y) shape.shapeType) |> group
+  List.map generateBlock (withShiftedLocations shape).blockLocations |> group
 
 
 generateBlock : Location -> Block
 generateBlock location =
   filled red (square (toFloat board.tileSize))
     |> move (Grid.toFloatPos (Location.scaleLocation board.tileSize location))
+
+
+rotate : Shape -> Shape
+rotate shape =
+  shape
