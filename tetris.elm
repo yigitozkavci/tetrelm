@@ -46,11 +46,6 @@ dropOnePixel shape =
   { shape | y = shape.y + 1 }
 
 
--- decideCmdByTime : Model -> Cmd Msg
--- decideCmdByTime model =
---   if model.time > 10 then (SendNewPiece) else Cmd.none
-
-
 decodeShapeType : Int -> ShapeType
 decodeShapeType encodedType =
   case encodedType of
