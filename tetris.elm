@@ -68,20 +68,23 @@ rotateBy rotateAmount shape =
   else
     rotateBy (rotateAmount - 1) { shape | blockLocations = (List.map rotate shape.blockLocations) }
 
-sendNewPiece : Int -> ShapeType -> Int -> Model -> Model
-sendNewPiece xPos shapeType rotateAmount model =
-  { model
-  | pieceInterval = 1
-  , shapes =
-      ({ x = xPos, y = 0
-      , shapeType = shapeType
-      , blockLocations = Shape.initialBlockLocationsFor shapeType
-      } |> (rotateBy rotateAmount)) :: model.shapes
-  }
+generateNewPiece : Int -> ShapeType -> Int -> Model -> Shape
+generateNewPiece xPos shapeType rotateAmount model =
+  { x = xPos, y = 0
+  , shapeType = shapeType
+  , blockLocations = Shape.initialBlockLocationsFor shapeType
+  } |> (rotateBy rotateAmount)
 
-positionAllowed : Int -> ShapeType -> Bool
-positionAllowed xPos shapeType =
-  True
+
+isLocationAllowed : Location -> Bool
+isLocationAllowed location =
+   let (x, _) = location in
+     x >= 0 && x < 10 
+
+positionAllowed : Int -> Shape -> Bool
+positionAllowed xPos shape =
+  List.map isLocationAllowed (Shape.withShiftedLocations shape).blockLocations
+    |> List.foldr (&&) True
 
 update msg model =
   case msg of
@@ -106,7 +109,12 @@ update msg model =
       in
         (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
     RandomRotate xPos shapeType rotateAmount ->
-      (sendNewPiece xPos shapeType rotateAmount model, Cmd.none)
+      let newShape = generateNewPiece xPos shapeType rotateAmount model in
+      if positionAllowed xPos newShape then
+        ({ model | pieceInterval = 1, shapes = (newShape :: model.shapes) }, Cmd.none )
+      else
+        let cmd = Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize)) in
+          (model, cmd)
     EmptyMsg ->
       (model, Cmd.none)
       
