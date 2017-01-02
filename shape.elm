@@ -1,28 +1,19 @@
 module Shape exposing (..)
 import Location
-import Collage exposing (Form, filled, square, move, group, collage)
+import Collage exposing (Form, filled, square, move, group, collage, outlined, defaultLine)
 import Color exposing (red, blue)
-import Board exposing (Board, board)
+import Types exposing (..)
 import Grid
-import Block exposing (Block, BlockMap)
 import Location
 import List exposing (foldr)
 import Matrix
 
-type ShapeType = L | RL | I | S | T
-
-type alias Shape =
-  { x : Int
-  , y : Int
-  , shapeType : ShapeType
-  , blockLocations : List Matrix.Location
-  }
-
 
 dropAllowed : BlockMap -> Shape -> Bool
 dropAllowed blockMap shape =
-  List.map (Location.dropAllowed blockMap) (withShiftedLocations shape).blockLocations
-      |> foldr (&&) True
+  shape.isActive &&
+    (List.map (Location.dropAllowed blockMap) (withShiftedLocations shape).blockLocations
+      |> foldr (&&) True)
 
 
 isXPosAllowed : Int -> Shape -> Bool
@@ -87,7 +78,7 @@ shapeToForm shape =
 
 generateBlock : Matrix.Location -> Block
 generateBlock location =
-  filled red (square (toFloat board.tileSize))
+  outlined { defaultLine | width = 3 } (square (toFloat board.tileSize))
     |> move (Grid.toFloatPos (Location.scaleLocation board.tileSize location))
 
 

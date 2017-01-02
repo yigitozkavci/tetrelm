@@ -2,8 +2,9 @@ module Grid exposing (..)
 import Collage exposing (..)
 import Element exposing (..)
 import Color exposing (..)
-import Board exposing (..)
+import Types exposing (..)
 import Matrix exposing (Location)
+import Text
 
 toFloatPos : Location -> (Float, Float)
 toFloatPos location =
@@ -47,7 +48,25 @@ generateGridLines =
   List.append (generateGridLineX [] 1) (generateGridLineY [] 1)
 
 
-gridLines : Form
-gridLines =
-  generateGridLines |> group
+scaleBy : Int -> (Float, Float) -> (Float, Float)
+scaleBy scale location =
+  let
+    (x, y) = location
+  in
+    (x * (toFloat scale) + (board.tileSize//2 |> toFloat), -y * (toFloat scale) - (board.tileSize//2 |> toFloat))
+
+
+generateBlockValues : Model -> List Form
+generateBlockValues model =
+  -- text (Text.fromString "wow")
+  let
+    toValueForm : Matrix.Location -> Int -> Form
+    toValueForm =
+      (\l val -> Text.fromString (toString val) |> text |> move(toFloatPos l |> scaleBy board.tileSize))
+  in
+    Matrix.mapWithLocation toValueForm model.blockMap |> Matrix.flatten
+
+gridLines : Model -> Form
+gridLines model =
+  List.append  generateGridLines (generateBlockValues model) |> group
 

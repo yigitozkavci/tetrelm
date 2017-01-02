@@ -1,7 +1,6 @@
 module Location exposing (..)
-import Board exposing (board)
 import Matrix exposing (Matrix)
-import Block exposing (BlockMap)
+import Types exposing (..)
 
 shiftLocationBy : Matrix.Location -> Matrix.Location -> Matrix.Location
 shiftLocationBy startingLocation location =
