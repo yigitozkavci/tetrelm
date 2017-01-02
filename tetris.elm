@@ -6,10 +6,13 @@ import Text
 import Color exposing(red, blue)
 import Grid
 import Board exposing (Board, board)
-import Location exposing (Location)
+import Location
+import Matrix exposing (matrix)
 import Shape exposing (Shape, shapeToForm, ShapeType(..))
 import Time exposing (Time, millisecond)
 import Random
+import Keyboard exposing (KeyCode)
+import Block exposing (BlockMap)
 import Collage exposing
   ( Form
   , collage
@@ -24,7 +27,7 @@ main =
 type alias Model =
   { shapes : List Shape
   , pieceInterval : Int
-  , board : List (List Location)
+  , blockMap : BlockMap
   }
 
 
@@ -32,7 +35,7 @@ model : Model
 model =
   { shapes = []
   , pieceInterval = 1
-  , board = [[]]
+  , blockMap = matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)
   }
 
 
@@ -46,11 +49,15 @@ type Msg =
   | RandomXPos Int
   | RandomType Int Int
   | RandomRotate Int ShapeType Int
+  | KeyUp KeyCode
 
 
-dropOnePixel : Shape -> Shape
-dropOnePixel shape =
-  { shape | y = shape.y + 1 }
+dropOnePixel : BlockMap -> Shape -> Shape
+dropOnePixel blockMap shape =
+  if Shape.dropAllowed blockMap shape then
+    { shape | y = shape.y + 1 }
+  else
+    shape
 
 
 decodeShapeType : Int -> ShapeType
@@ -64,56 +71,19 @@ decodeShapeType encodedType =
     _ -> L
 
 
-rotate : Location -> Location
-rotate location =
-  let (x, y) = location in
-      (-y, x)
-
-
-rotateBy : Int -> Shape -> Shape
-rotateBy rotateAmount shape =
-  if rotateAmount == 0 then
-    shape
-  else
-    rotateBy (rotateAmount - 1) { shape | blockLocations = (List.map rotate shape.blockLocations) }
-
-
 generateNewPiece : Int -> ShapeType -> Int -> Model -> Shape
 generateNewPiece xPos shapeType rotateAmount model =
   { x = xPos, y = 0
   , shapeType = shapeType
   , blockLocations = Shape.initialBlockLocationsFor shapeType
-  } |> (rotateBy rotateAmount)
-
-
-isLocationAllowed : Location -> Bool
-isLocationAllowed location =
-   let (x, _) = location in
-     x >= 0 && x < 10 
-
-
-positionAllowed : Int -> Shape -> Bool
-positionAllowed xPos shape =
-  List.map isLocationAllowed (Shape.withShiftedLocations shape).blockLocations
-    |> List.foldr (&&) True
+  } |> (Shape.rotateBy rotateAmount)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick time ->
-      let
-        cmd =
-          if model.pieceInterval >= 6 then
-            Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize))
-          else
-            Cmd.none
-      in
-        ( { model
-          | pieceInterval = model.pieceInterval + 1
-          , shapes = List.map dropOnePixel model.shapes
-          }
-        , cmd)
+        ({ model | shapes = List.map (dropOnePixel model.blockMap) model.shapes }, Cmd.none)
     RandomXPos xPos ->
       (model, Random.generate (RandomType xPos) (Random.int 1 5))
     RandomType xPos encodedShapeType ->
@@ -123,14 +93,15 @@ update msg model =
         (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
     RandomRotate xPos shapeType rotateAmount ->
       let newShape = generateNewPiece xPos shapeType rotateAmount model in
-      if positionAllowed xPos newShape then
+      if Shape.isXPosAllowed xPos newShape then
         ({ model | pieceInterval = 1, shapes = (newShape :: model.shapes) }, Cmd.none )
       else
         let cmd = Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize)) in
           (model, cmd)
+    KeyUp key ->
+      (model, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
     EmptyMsg ->
       (model, Cmd.none)
-      
 
 
 tetris : Model -> List Form
@@ -147,7 +118,9 @@ tetrisHtml model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every (100 * millisecond) Tick
+  [ Time.every (100 * millisecond) Tick
+  , Keyboard.ups KeyUp
+  ] |> Sub.batch
 
 
 view model =

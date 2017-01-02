@@ -1,10 +1,13 @@
 module Shape exposing (..)
-import Location exposing (Location)
+import Location
 import Collage exposing (Form, filled, square, move, group, collage)
 import Color exposing (red, blue)
 import Board exposing (Board, board)
 import Grid
-import Block exposing (Block)
+import Block exposing (Block, BlockMap)
+import Location
+import List exposing (foldr)
+import Matrix
 
 type ShapeType = L | RL | I | S | T
 
@@ -12,11 +15,23 @@ type alias Shape =
   { x : Int
   , y : Int
   , shapeType : ShapeType
-  , blockLocations : List Location
+  , blockLocations : List Matrix.Location
   }
 
 
-initialBlockLocationsFor : ShapeType -> List Location
+dropAllowed : BlockMap -> Shape -> Bool
+dropAllowed blockMap shape =
+  List.map (Location.dropAllowed blockMap) (withShiftedLocations shape).blockLocations
+      |> foldr (&&) True
+
+
+isXPosAllowed : Int -> Shape -> Bool
+isXPosAllowed xPos shape =
+  List.map Location.isXPosAllowed (withShiftedLocations shape).blockLocations
+    |> foldr (&&) True
+
+
+initialBlockLocationsFor : ShapeType -> List Matrix.Location
 initialBlockLocationsFor shapeType =
   case shapeType of
     L ->
@@ -57,7 +72,7 @@ withShiftedLocations shape =
   { shape | blockLocations = shiftLocationsBy shape.x shape.y shape.blockLocations }
 
 
-shiftLocationsBy : Int -> Int -> List Location -> List Location
+shiftLocationsBy : Int -> Int -> List Matrix.Location -> List Matrix.Location
 shiftLocationsBy x y locations =
   List.map (\location ->
     let (locX, locY) = location in
@@ -70,12 +85,17 @@ shapeToForm shape =
   List.map generateBlock (withShiftedLocations shape).blockLocations |> group
 
 
-generateBlock : Location -> Block
+generateBlock : Matrix.Location -> Block
 generateBlock location =
   filled red (square (toFloat board.tileSize))
     |> move (Grid.toFloatPos (Location.scaleLocation board.tileSize location))
 
 
-rotate : Shape -> Shape
-rotate shape =
-  shape
+rotateBy : Int -> Shape -> Shape
+rotateBy rotateAmount shape =
+  if rotateAmount == 0 then
+    shape
+  else
+    rotateBy (rotateAmount - 1) { shape | blockLocations = (List.map Location.rotate shape.blockLocations) }
+
+
