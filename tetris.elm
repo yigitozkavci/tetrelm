@@ -58,12 +58,12 @@ getRow row blockMap =
 setRow : Int -> Matrix.Matrix Int -> List Int -> Matrix.Matrix Int
 setRow row blockMap newRow =
   List.indexedMap (\i col ->
-    List.map (\innerRow ->
+    List.indexedMap (\innerRow innerVal ->
       if innerRow == row then
         case (Array.get i (Array.fromList newRow)) of
           Just a -> a
           Nothing -> 0
-      else 0
+      else innerVal
     ) col
   ) (Matrix.toList blockMap) |> Matrix.fromList
 
@@ -73,6 +73,8 @@ carryRowToBottom blockMap row =
   if row == 0 then
     blockMap
   else
+    let _ = Debug.log ("Carrying " ++ (toString row) ++ " th row") ""
+        _ = Debug.log "Row" (getRow row blockMap) in
     carryRowToBottom (setRow (row + 1) blockMap (getRow row blockMap)) (row - 1)
 
 
@@ -82,7 +84,8 @@ clearRowSeq blockMap row =
     blockMap
   else
     if List.all (\s -> s == 1) (getRow row blockMap) then
-      carryRowToBottom blockMap row
+      let _ = Debug.log ("Carrying row: " ++ (toString row)) "" in
+      carryRowToBottom blockMap (row - 1)
     else
       clearRowSeq blockMap (row - 1)
 
@@ -227,7 +230,7 @@ update msg model =
 
 tetris : Model -> List Form
 tetris model =
-  (Grid.gridLines model) :: (List.map shapeToForm (model.shapes |> List.filter (\s -> s.isActive)
+  (Grid.gridLines model) :: (List.map shapeToForm (model.shapes |> List.filter (\s -> s.isActive)))
 
 
 tetrisHtml : Model -> Html Msg
