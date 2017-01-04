@@ -57,8 +57,6 @@ getRow row blockMap =
 -}
 setRow : Int -> Matrix.Matrix Int -> List Int -> Matrix.Matrix Int
 setRow row blockMap newRow =
-  -- let _ = Debug.log "wow" row in
-  -- blockMap    
   List.indexedMap (\i col ->
     List.map (\innerRow ->
       if innerRow == row then
@@ -211,7 +209,6 @@ update msg model =
         let cmd = Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize)) in
           (model, cmd)
     KeyUp key ->
-      let _ = Debug.log "Key" key in
       if key == startGameKey then
         (model, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
       else if key == leftKey then
@@ -230,7 +227,7 @@ update msg model =
 
 tetris : Model -> List Form
 tetris model =
-  (Grid.gridLines model) :: (List.map shapeToForm model.shapes)
+  (Grid.gridLines model) :: (List.map shapeToForm (model.shapes |> List.filter (\s -> s.isActive)
 
 
 tetrisHtml : Model -> Html Msg

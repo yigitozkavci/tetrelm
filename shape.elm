@@ -93,7 +93,7 @@ shiftLocationsBy x y locations =
 
 shapeToForm : Shape -> Form
 shapeToForm shape =
-  List.map generateBlock (withShiftedLocations shape).blockLocations |> group
+  (withShiftedLocations shape).blockLocations |> List.map generateBlock |> group
 
 
 generateBlock : Matrix.Location -> Block

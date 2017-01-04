@@ -61,7 +61,11 @@ generateBlockValues model =
   let
     toValueForm : Matrix.Location -> Int -> Form
     toValueForm location value =
-      Text.fromString (toString value) |> text |> move(toFloatPos location |> scaleBy board.tileSize)
+      -- Text.fromString (toString value) |> text |> move(toFloatPos location |> scaleBy board.tileSize)
+      if value == 1 then
+        filled red (square (toFloat board.tileSize)) |> move(toFloatPos location |> scaleBy board.tileSize)
+      else
+        Text.fromString "" |> text |> move(toFloatPos location |> scaleBy board.tileSize)
   in
     Matrix.mapWithLocation toValueForm model.blockMap |> Matrix.flatten
 
