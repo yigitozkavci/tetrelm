@@ -29,10 +29,18 @@ dropAllowed blockMap location =
         y < 0
 
 
+isPositionAllowed : Matrix.Location -> BlockMap -> Bool
+isPositionAllowed location blockMap =
+  case Matrix.get location blockMap of
+    Just value ->
+      value == 0
+    Nothing -> False
+
+
 isXPosAllowed : Matrix.Location -> Bool
 isXPosAllowed location =
-   let (x, _) = location in
-     x >= 0 && x < 10 
+   let (x, _) = (Debug.log "Location: " location) in
+     x >= 0 && x < 10
 
 
 rotate : Matrix.Location -> Matrix.Location

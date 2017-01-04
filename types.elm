@@ -13,6 +13,9 @@ type Msg =
   | KeyUp KeyCode
 
 
+type Direction = Left | Right
+
+
 type alias Model =
   { shapes : List Shape
   , pieceInterval : Int

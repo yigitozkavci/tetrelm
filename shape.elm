@@ -18,8 +18,29 @@ dropAllowed blockMap shape =
 
 isXPosAllowed : Int -> Shape -> Bool
 isXPosAllowed xPos shape =
-  List.map Location.isXPosAllowed (withShiftedLocations shape).blockLocations
-    |> foldr (&&) True
+  let
+    _ = Debug.log "wow" (withShiftedLocations shape).blockLocations
+  in
+    List.map Location.isXPosAllowed (withShiftedLocations shape).blockLocations
+      |> foldr (&&) True |> Debug.log "result"
+
+
+movePiece : Shape -> Direction -> BlockMap -> Shape
+movePiece shape direction blockMap =
+  let
+    newX =
+      case direction of
+        Left -> shape.x - 1
+        Right -> shape.x + 1
+    newShape = { shape | x = newX }
+    isPositionAllowed =
+      List.map (\loc -> Location.isPositionAllowed loc blockMap) (withShiftedLocations newShape).blockLocations
+        |> List.foldr (&&) True
+  in
+    if isPositionAllowed then
+      { shape | x = newX }
+    else
+      shape
 
 
 initialBlockLocationsFor : ShapeType -> List Matrix.Location
@@ -51,10 +72,9 @@ initialBlockLocationsFor shapeType =
       ]
     T ->
       [ (0, 0)
+      , (-1, 0)
       , (1, 0)
-      , (0, 0)
-      , (2, 0)
-      , (1, 1)
+      , (0, -1)
       ]
 
 
