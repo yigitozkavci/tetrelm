@@ -12,6 +12,7 @@ import Shape exposing (shapeToForm)
 import Time exposing (Time, millisecond)
 import Random
 import Keyboard exposing (KeyCode)
+import Array exposing (Array)
 import Collage exposing
   ( Form
   , collage
@@ -40,6 +41,36 @@ emptyShape =
   Shape 0 0 I [(0, 0)] False
 
 
+{- Gets the row of a matrix
+-}
+getRow : Int -> Matrix.Matrix Int -> List Int
+getRow row blockMap =
+  List.map (\col ->
+    List.indexedMap (\innerRow val ->
+      if innerRow == row then val else 0
+    ) col |> List.foldr (+) 0
+  ) (Matrix.toList blockMap)
+
+
+{- Sets the row of a matrix
+-}
+setRow : Int -> Matrix.Matrix Int -> Int -> Matrix.Matrix Int
+setRow row blockMap value =
+  List.map (\col ->
+    List.map (\innerRow ->
+      if innerRow == row then value else 0
+    ) col
+  ) (Matrix.toList blockMap) |> Matrix.fromList
+
+
+clearIfNecessary : BlockMap -> BlockMap
+clearIfNecessary blockMap =
+  let
+      _ = Debug.log "wow" (getRow 19 blockMap)
+  in
+    blockMap
+
+
 dropShapesByOnePixel : Model -> Model
 dropShapesByOnePixel model =
   let
@@ -49,11 +80,13 @@ dropShapesByOnePixel model =
           if Shape.dropAllowed model.blockMap shape then
             ({ shape | y = shape.y + 1}, model.blockMap)
           else
-            Debug.log "Drop not allowed" ({ shape | isActive = False }, feedShapeToBlockMap shape model.blockMap)
+            ({ shape | isActive = False }, feedShapeToBlockMap shape model.blockMap)
         else
           (shape, model.blockMap)
       ) model.shapes
+
     shapes = List.map (\(shape, _) -> shape) shapesAndBlockMap
+
     (_, blockMap) =
       case (shapesAndBlockMap |> List.head) of
         Just a ->
@@ -61,19 +94,16 @@ dropShapesByOnePixel model =
         Nothing ->
           (emptyShape, model.blockMap)
   in
-    { model | shapes = shapes, blockMap = blockMap }
+    { model | shapes = shapes, blockMap = (clearIfNecessary blockMap) }
 
-
-isOneOf : Matrix.Location -> List Matrix.Location -> Bool
-isOneOf location locations =
-  List.map (\loc -> loc == location) locations |> List.foldr (||) False |> Debug.log "Is one of: "
 
 feedShapeToBlockMap : Shape -> BlockMap -> BlockMap
 feedShapeToBlockMap shape blockMap =
   let
     newShape = Shape.withShiftedLocations shape
   in
-    Matrix.mapWithLocation (\loc val -> if isOneOf loc newShape.blockLocations then 1 else val) blockMap
+    Matrix.mapWithLocation (\loc val -> if List.member loc newShape.blockLocations then 1 else val) blockMap
+
 
 decodeShapeType : Int -> ShapeType
 decodeShapeType encodedType =
@@ -127,7 +157,7 @@ tetris model =
 
 tetrisHtml : Model -> Html Msg
 tetrisHtml model =
-  collage 301 601
+  collage 304 604
     [ tetris model |> group |> move (-150, 300)
     ] |> toHtml
 

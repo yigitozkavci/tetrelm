@@ -58,11 +58,10 @@ scaleBy scale location =
 
 generateBlockValues : Model -> List Form
 generateBlockValues model =
-  -- text (Text.fromString "wow")
   let
     toValueForm : Matrix.Location -> Int -> Form
-    toValueForm =
-      (\l val -> Text.fromString (toString val) |> text |> move(toFloatPos l |> scaleBy board.tileSize))
+    toValueForm location value =
+      Text.fromString (toString value) |> text |> move(toFloatPos location |> scaleBy board.tileSize)
   in
     Matrix.mapWithLocation toValueForm model.blockMap |> Matrix.flatten
 
