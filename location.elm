@@ -26,7 +26,7 @@ dropAllowed blockMap location =
       Just value ->
         value == 0
       Nothing ->
-        False
+        y < 0
 
 
 isXPosAllowed : Matrix.Location -> Bool

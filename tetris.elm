@@ -49,13 +49,13 @@ dropShapesByOnePixel model =
           if Shape.dropAllowed model.blockMap shape then
             ({ shape | y = shape.y + 1}, model.blockMap)
           else
-            ({ shape | isActive = False }, feedShapeToBlockMap shape model.blockMap)
+            Debug.log "Drop not allowed" ({ shape | isActive = False }, feedShapeToBlockMap shape model.blockMap)
         else
           (shape, model.blockMap)
       ) model.shapes
     shapes = List.map (\(shape, _) -> shape) shapesAndBlockMap
     (_, blockMap) =
-      case (shapesAndBlockMap |> List.reverse |> List.head) of
+      case (shapesAndBlockMap |> List.head) of
         Just a ->
           a
         Nothing ->
@@ -64,13 +64,16 @@ dropShapesByOnePixel model =
     { model | shapes = shapes, blockMap = blockMap }
 
 
+isOneOf : Matrix.Location -> List Matrix.Location -> Bool
+isOneOf location locations =
+  List.map (\loc -> loc == location) locations |> List.foldr (||) False |> Debug.log "Is one of: "
+
 feedShapeToBlockMap : Shape -> BlockMap -> BlockMap
 feedShapeToBlockMap shape blockMap =
   let
     newShape = Shape.withShiftedLocations shape
-    shapeLoc = (newShape.x, newShape.y)
   in
-    Matrix.mapWithLocation (\loc _ -> if loc == shapeLoc then 1 else 0) blockMap
+    Matrix.mapWithLocation (\loc val -> if isOneOf loc newShape.blockLocations then 1 else val) blockMap
 
 decodeShapeType : Int -> ShapeType
 decodeShapeType encodedType =
