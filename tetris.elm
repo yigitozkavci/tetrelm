@@ -55,18 +55,42 @@ getRow row blockMap =
 
 {- Sets the row of a matrix
 -}
-setRow : Int -> Matrix.Matrix Int -> Int -> Matrix.Matrix Int
-setRow row blockMap value =
-  List.map (\col ->
+setRow : Int -> Matrix.Matrix Int -> List Int -> Matrix.Matrix Int
+setRow row blockMap newRow =
+  -- let _ = Debug.log "wow" row in
+  -- blockMap    
+  List.indexedMap (\i col ->
     List.map (\innerRow ->
-      if innerRow == row then value else 0
+      if innerRow == row then
+        case (Array.get i (Array.fromList newRow)) of
+          Just a -> a
+          Nothing -> 0
+      else 0
     ) col
   ) (Matrix.toList blockMap) |> Matrix.fromList
 
 
+carryRowToBottom : BlockMap -> Int -> BlockMap
+carryRowToBottom blockMap row =
+  if row == 0 then
+    blockMap
+  else
+    carryRowToBottom (setRow (row + 1) blockMap (getRow row blockMap)) (row - 1)
+
+
+clearRowSeq : BlockMap -> Int -> BlockMap
+clearRowSeq blockMap row =
+  if row == 0 then
+    blockMap
+  else
+    if List.all (\s -> s == 1) (getRow row blockMap) then
+      carryRowToBottom blockMap row
+    else
+      clearRowSeq blockMap (row - 1)
+
 clearIfNecessary : BlockMap -> BlockMap
 clearIfNecessary blockMap =
-  blockMap
+  clearRowSeq blockMap (board.height//board.tileSize)
 
 
 dropShapesByOnePixel : Model -> (Model, Cmd Msg)
@@ -92,10 +116,10 @@ dropShapesByOnePixel model =
         Nothing ->
           (emptyShape, model.blockMap, False)
 
-    isDropped = shapesAndBlockMap |> List.map (\(_, _, status) -> status) |> List.foldr (&&) True
+    isStickedToGround = shapesAndBlockMap |> List.map (\(_, _, status) -> status) |> List.foldr (&&) True
 
     cmd =
-      if isDropped then
+      if isStickedToGround then
         Cmd.none
       else
         Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize))
