@@ -16,6 +16,13 @@ dropAllowed blockMap shape =
       |> foldr (&&) True)
 
 
+rotateAllowed : Shape -> BlockMap -> Bool
+rotateAllowed shape blockMap =
+  Debug.log "Rotate allowed" (
+    (withShiftedLocations (rotateBy 1 shape)).blockLocations
+      |> List.all (Location.isPositionAllowed blockMap)
+  )
+  
 positionValid : Shape -> Bool
 positionValid shape =
   (List.map (Location.positionValid) (withShiftedLocations shape).blockLocations
@@ -37,7 +44,7 @@ movePiece shape direction blockMap =
         Right -> shape.x + 1
     newShape = { shape | x = newX }
     isPositionAllowed =
-      List.map (\loc -> Location.isPositionAllowed loc blockMap) (withShiftedLocations newShape).blockLocations
+      List.map (\loc -> Location.isPositionAllowed blockMap loc) (withShiftedLocations newShape).blockLocations
         |> List.foldr (&&) True
   in
     if isPositionAllowed then

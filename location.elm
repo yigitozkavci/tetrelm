@@ -41,8 +41,8 @@ dropAllowed blockMap location =
           y <= 0
 
 
-isPositionAllowed : Matrix.Location -> BlockMap -> Bool
-isPositionAllowed location blockMap =
+isPositionAllowed : BlockMap -> Matrix.Location -> Bool
+isPositionAllowed blockMap location =
   case Matrix.get location blockMap of
     Just value ->
       value == 0

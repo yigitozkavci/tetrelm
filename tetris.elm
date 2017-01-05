@@ -122,7 +122,7 @@ dropShapesByOnePixel model =
         let lastDroppedShape = List.filter (\s -> s.lastDropped) shapes |> List.head in
           case lastDroppedShape of
             Just s ->
-              if Debug.log "positionvalid" (Shape.positionValid s) then
+              if Shape.positionValid s then
                 (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
               else
                 (Over, Cmd.none)
@@ -172,9 +172,18 @@ generateNewPiece xPos shapeType rotateAmount model =
 rotateActiveShape : Model -> Model
 rotateActiveShape model =
   let
-    shapes = model.shapes |> List.map (\s -> if s.isActive then Shape.rotateBy 1 s else s)
+    shapes =
+      model.shapes
+        |> List.map (\shape ->
+             if shape.isActive && Shape.rotateAllowed shape model.blockMap then
+               Shape.rotateBy 1 shape
+             else
+               shape
+           )
   in
     { model | shapes = shapes }
+
+
 movePiece : Model -> Direction -> BlockMap -> Model
 movePiece model direction blockMap =
   let
