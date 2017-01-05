@@ -20,9 +20,9 @@ scaleLocation scale location =
 positionValid : Matrix.Location -> Bool
 positionValid location =
   let (x, y) = location in
-    x > 0 &&
+    x >= 0 &&
     x < board.width//board.tileSize &&
-    y > 0 &&
+    y >= 0 &&
     y < board.height//board.tileSize
 
 
@@ -34,9 +34,11 @@ dropAllowed blockMap location =
   in
     case result of
       Just value ->
-        value == 0
+        -- Debug.log "just"
+          value == 0
       Nothing ->
-        y < 0
+        -- Debug.log "nothin'"
+          y <= 0
 
 
 isPositionAllowed : Matrix.Location -> BlockMap -> Bool

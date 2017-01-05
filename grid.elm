@@ -71,5 +71,5 @@ generateBlockValues model =
 
 gridLines : Model -> Form
 gridLines model =
-  List.append  generateGridLines (generateBlockValues model) |> group
+  List.append generateGridLines (generateBlockValues model) |> group
 

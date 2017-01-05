@@ -54,6 +54,7 @@ type alias Shape =
   , shapeType : ShapeType
   , blockLocations : List Matrix.Location
   , isActive : Bool
+  , lastDropped : Bool
   }
 
 

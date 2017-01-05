@@ -40,7 +40,7 @@ init =
 
 emptyShape : Shape
 emptyShape =
-  Shape 0 0 I [(0, 0)] False
+  Shape 0 0 I [(0, 0)] False False
 
 
 {- Gets the row of a matrix
@@ -99,11 +99,11 @@ dropShapesByOnePixel model =
       List.map (\shape -> 
         if shape.isActive then
           if Shape.dropAllowed model.blockMap shape then
-            ({ shape | y = shape.y + 1}, model.blockMap, True)
+            ({ shape | y = shape.y + 1}, model.blockMap, False)
           else
-            ({ shape | isActive = False }, feedShapeToBlockMap shape model.blockMap, False)
+            ({ shape | isActive = False, lastDropped = True }, feedShapeToBlockMap shape model.blockMap, True)
         else
-          (shape, model.blockMap, True)
+          ({ shape | lastDropped = False }, model.blockMap, False)
       ) model.shapes
 
     shapes = List.map (\(shape, _, _) -> shape) shapesAndBlockMap
@@ -115,21 +115,22 @@ dropShapesByOnePixel model =
         Nothing ->
           (emptyShape, model.blockMap, False)
 
-    isStickedToGround = shapesAndBlockMap |> List.map (\(_, _, status) -> status) |> List.foldr (&&) True
+    isStickedToGround = shapesAndBlockMap |> List.map (\(_, _, status) -> status) |> List.foldr (||) False
 
     (state, cmd) =
       if isStickedToGround then
-        let activeShape = onlyActive shapes in
-          case activeShape of
+        let lastDroppedShape = List.filter (\s -> s.lastDropped) shapes |> List.head in
+          case lastDroppedShape of
             Just s ->
-              if Shape.positionValid s then
-                (model.state, Cmd.none)
+              if Debug.log "positionvalid" (Shape.positionValid s) then
+                (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
               else
                 (Over, Cmd.none)
             Nothing ->
-              (model.state, Cmd.none)
+              (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
+              -- (model.state, Cmd.none)
       else
-        (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
+        (model.state, Cmd.none)
   in
     ({ model | shapes = shapes, blockMap = (clearIfNecessary blockMap), state = state }, cmd)
 
@@ -164,6 +165,7 @@ generateNewPiece xPos shapeType rotateAmount model =
   , shapeType = shapeType
   , blockLocations = Shape.initialBlockLocationsFor shapeType
   , isActive = True
+  , lastDropped = False
   } |> (Shape.rotateBy rotateAmount)
 
 
@@ -209,20 +211,21 @@ enterKey =
 
 finish : Model -> (Model, Cmd Msg)
 finish model =
-  (model, Cmd.none)
+  -- ({ model | shapes = [], blockMap = (Matrix.matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)) }, Cmd.none)
+  ({ model | shapes = [] }, Cmd.none)
 
 
 dropActiveShape : Model -> (Model, Cmd Msg)
 dropActiveShape model =
   let
-    (newModel, _) = dropShapesByOnePixel model
+    (newModel, cmd) = dropShapesByOnePixel model
     activeShape = onlyActive newModel.shapes
   in  
     case activeShape of
       Just shape ->
         dropActiveShape newModel
       Nothing ->
-        (newModel, Cmd.none)
+        (newModel, cmd)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -269,7 +272,11 @@ update msg model =
 
 tetris : Model -> List Form
 tetris model =
-  (Grid.gridLines model) :: (List.map shapeToForm (model.shapes |> List.filter (\s -> s.isActive)))
+  case model.state of
+    Playing ->
+      (Grid.gridLines model) :: (List.map shapeToForm (model.shapes |> List.filter (\s -> s.isActive)))
+    Over ->
+      [ Text.fromString "GAME OVER" |> Collage.text |> move(Grid.toFloatPos (board.width//2, -board.height//2)) ]
 
 
 tetrisHtml : Model -> Html Msg
