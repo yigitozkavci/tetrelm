@@ -16,10 +16,14 @@ type Msg =
 type Direction = Left | Right
 
 
+type GameState = Playing | Over
+
+
 type alias Model =
   { shapes : List Shape
   , pieceInterval : Int
   , blockMap : BlockMap
+  , state : GameState
   }
 
 

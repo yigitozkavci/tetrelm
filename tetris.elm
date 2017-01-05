@@ -30,6 +30,7 @@ initModel =
   { shapes = []
   , pieceInterval = 1
   , blockMap = matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)
+  , state = Playing
   }
 
 
@@ -73,8 +74,6 @@ carryRowToBottom blockMap row =
   if row == 0 then
     blockMap
   else
-    let _ = Debug.log ("Carrying " ++ (toString row) ++ " th row") ""
-        _ = Debug.log "Row" (getRow row blockMap) in
     carryRowToBottom (setRow (row + 1) blockMap (getRow row blockMap)) (row - 1)
 
 
@@ -84,7 +83,6 @@ clearRowSeq blockMap row =
     blockMap
   else
     if List.all (\s -> s == 1) (getRow row blockMap) then
-      let _ = Debug.log ("Carrying row: " ++ (toString row)) "" in
       carryRowToBottom blockMap (row - 1)
     else
       clearRowSeq blockMap (row - 1)
@@ -119,13 +117,26 @@ dropShapesByOnePixel model =
 
     isStickedToGround = shapesAndBlockMap |> List.map (\(_, _, status) -> status) |> List.foldr (&&) True
 
-    cmd =
+    (state, cmd) =
       if isStickedToGround then
-        Cmd.none
+        let activeShape = onlyActive shapes in
+          case activeShape of
+            Just s ->
+              if Shape.positionValid s then
+                (model.state, Cmd.none)
+              else
+                (Over, Cmd.none)
+            Nothing ->
+              (model.state, Cmd.none)
       else
-        Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize))
+        (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
   in
-    ({ model | shapes = shapes, blockMap = (clearIfNecessary blockMap) }, cmd)
+    ({ model | shapes = shapes, blockMap = (clearIfNecessary blockMap), state = state }, cmd)
+
+
+onlyActive : List Shape -> Maybe Shape
+onlyActive shapes =
+  shapes |> List.filter (\s -> s.isActive) |> List.head
 
 
 feedShapeToBlockMap : Shape -> BlockMap -> BlockMap
@@ -189,14 +200,40 @@ rightKey =
 downKey =
   40
 
-startGameKey =
+spaceKey =
   32
+
+enterKey =
+  13
+
+
+finish : Model -> (Model, Cmd Msg)
+finish model =
+  (model, Cmd.none)
+
+
+dropActiveShape : Model -> (Model, Cmd Msg)
+dropActiveShape model =
+  let
+    (newModel, _) = dropShapesByOnePixel model
+    activeShape = onlyActive newModel.shapes
+  in  
+    case activeShape of
+      Just shape ->
+        dropActiveShape newModel
+      Nothing ->
+        (newModel, Cmd.none)
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick time ->
-      dropShapesByOnePixel model
+      case model.state of
+        Playing ->
+          dropShapesByOnePixel model
+        Over ->
+          finish model
     RandomXPos xPos ->
       (model, Random.generate (RandomType xPos) (Random.int 1 5))
     RandomType xPos encodedShapeType ->
@@ -206,13 +243,15 @@ update msg model =
         (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
     RandomRotate xPos shapeType rotateAmount ->
       let newShape = generateNewPiece xPos shapeType rotateAmount model in
-      if Shape.isXPosAllowed xPos newShape then
-        ({ model | pieceInterval = 1, shapes = (newShape :: model.shapes) }, Cmd.none )
-      else
-        let cmd = Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize)) in
-          (model, cmd)
+        if Shape.isXPosAllowed xPos newShape then
+          ({ model | pieceInterval = 1, shapes = (newShape :: model.shapes) }, Cmd.none )
+        else
+          let cmd = Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize)) in
+            (model, cmd)
     KeyUp key ->
-      if key == startGameKey then
+      if key == spaceKey then
+        dropActiveShape model
+      else if key == enterKey then
         (model, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
       else if key == leftKey then
         (movePiece model Left model.blockMap, Cmd.none)

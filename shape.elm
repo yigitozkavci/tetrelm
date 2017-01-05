@@ -16,13 +16,16 @@ dropAllowed blockMap shape =
       |> foldr (&&) True)
 
 
+positionValid : Shape -> Bool
+positionValid shape =
+  (List.map (Location.positionValid) (withShiftedLocations shape).blockLocations
+    |> foldr (&&) True)
+
+
 isXPosAllowed : Int -> Shape -> Bool
 isXPosAllowed xPos shape =
-  let
-    _ = Debug.log "wow" (withShiftedLocations shape).blockLocations
-  in
-    List.map Location.isXPosAllowed (withShiftedLocations shape).blockLocations
-      |> foldr (&&) True |> Debug.log "result"
+  List.map Location.isXPosAllowed (withShiftedLocations shape).blockLocations
+    |> foldr (&&) True
 
 
 movePiece : Shape -> Direction -> BlockMap -> Shape
