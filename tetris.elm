@@ -1,6 +1,6 @@
-import Html exposing (Html, input, div)
+import Html exposing (Html, input, div, button, text)
 import Html.Attributes exposing (placeholder)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onInput, onClick)
 import Element exposing (toHtml)
 import Text
 import Color exposing(red, blue)
@@ -33,7 +33,7 @@ initModel : Model
 initModel =
   { shapes = []
   , blockMap = matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)
-  , state = Playing
+  , state = NotStarted
   }
 
 
@@ -132,7 +132,6 @@ dropShapesByOnePixel model =
                   (Over, Cmd.none)
               Nothing ->
                 (model.state, generateNewPieceCmd)
-                -- (model.state, Cmd.none)
       else
         (model.state, Cmd.none)
   in
@@ -197,8 +196,25 @@ movePiece model direction blockMap =
     { model | shapes = shapes }
 
 
-sendPieceKey =
-  toCode 'S'
+getKeyCode : KeyType -> KeyCode
+getKeyCode key =
+  case key of
+    SendPieceKey ->
+      toCode 'S'
+    RestartKey ->
+      toCode 'W'
+    Left ->
+      37
+    Up ->
+      38
+    Right ->
+      39
+    Down ->
+      40
+    Space ->
+      32
+    Enter ->
+      13
   
 restartKey =
   toCode 'W'
@@ -252,7 +268,6 @@ url = "http://localhost:3000/tetrelm/games/2/moves/create"
 
 fetchShapeXPos : BlockMap -> ShapeType -> Cmd Msg
 fetchShapeXPos blockMap shapeType =
-  -- decodeString (field "x_position" int)
   let
     request =
       Http.post url jsonBody (Json.Decode.field "x_position" Json.Decode.int)
@@ -272,8 +287,12 @@ generateNewPieceCmd =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    StartGame ->
+      ({ model | state = Playing }, generateNewPieceCmd)
     Tick time ->
       case model.state of
+        NotStarted ->
+          (model, Cmd.none)
         Playing ->
           let (newModel, cmd) = dropShapesByOnePixel model in
             (newModel, cmd)
@@ -294,15 +313,13 @@ update msg model =
     KeyUp key ->
       if key == spaceKey then
         dropActiveShape model
-      else if key == enterKey then
-        (model, generateNewPieceCmd)
-      else if key == leftKey then
-        (movePiece model Left model.blockMap, Cmd.none)
-      else if key == rightKey then
-        (movePiece model Right model.blockMap, Cmd.none)
-      else if key == upKey then
+      else if key == getKeyCode Left then
+        (movePiece model DirectionLeft model.blockMap, Cmd.none)
+      else if key == getKeyCode Right then
+        (movePiece model DirectionRight model.blockMap, Cmd.none)
+      else if key == getKeyCode Up then
         (rotateActiveShape model, Cmd.none)
-      else if key == downKey then
+      else if key == getKeyCode Down then
         dropShapesByOnePixel model
       else
         (model, Cmd.none)
@@ -313,6 +330,8 @@ update msg model =
 tetris : Model -> List Form
 tetris model =
   case model.state of
+    NotStarted ->
+      [Grid.gridLines model]
     Playing ->
       (Grid.gridLines model) :: (List.map shapeToForm (model.shapes |> List.filter (\s -> s.isActive)))
     Over ->
@@ -333,7 +352,16 @@ subscriptions model =
   ] |> Sub.batch
 
 
+startButton : Model -> Html Msg
+startButton model =
+  case model.state of
+    NotStarted ->
+      button [ onClick StartGame ] [ text "Start" ]
+    _ ->
+      div [] []
+
 view model =
   div []
     [ tetrisHtml model
+    , startButton model
     ]

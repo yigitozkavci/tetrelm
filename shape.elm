@@ -40,8 +40,8 @@ movePiece shape direction blockMap =
   let
     newX =
       case direction of
-        Left -> shape.x - 1
-        Right -> shape.x + 1
+        DirectionLeft -> shape.x - 1
+        DirectionRight -> shape.x + 1
     newShape = { shape | x = newX }
     isPositionAllowed =
       List.map (\loc -> Location.isPositionAllowed blockMap loc) (withShiftedLocations newShape).blockLocations

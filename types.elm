@@ -12,12 +12,24 @@ type Msg =
   | RandomRotate Int ShapeType Int
   | KeyUp KeyCode
   | RandomShapeType ShapeType
+  | StartGame
 
 
-type Direction = Left | Right
+type Direction = DirectionLeft | DirectionRight
 
 
-type GameState = Playing | Over
+type KeyType =
+  SendPieceKey
+  | RestartKey
+  | Left
+  | Up
+  | Right
+  | Down
+  | Space
+  | Enter
+
+
+type GameState = NotStarted | Playing | Over
 
 
 type alias Model =
