@@ -3,14 +3,15 @@ import Matrix exposing (Matrix)
 import Collage exposing (Form)
 import Time exposing (Time)
 import Keyboard exposing (KeyCode)
+import Http
 
 type Msg =
   Tick Time
   | EmptyMsg
-  | RandomXPos Int
-  | RandomType Int Int
+  | ShapeXPos ShapeType (Result Http.Error Int)
   | RandomRotate Int ShapeType Int
   | KeyUp KeyCode
+  | RandomShapeType ShapeType
 
 
 type Direction = Left | Right
@@ -21,7 +22,6 @@ type GameState = Playing | Over
 
 type alias Model =
   { shapes : List Shape
-  , pieceInterval : Int
   , blockMap : BlockMap
   , state : GameState
   }

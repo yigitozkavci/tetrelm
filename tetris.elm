@@ -14,6 +14,10 @@ import Random
 import Keyboard exposing (KeyCode)
 import Array exposing (Array)
 import Char exposing (toCode)
+import Rest
+import Json.Decode exposing(..)
+import Http
+
 import Collage exposing
   ( Form
   , collage
@@ -28,7 +32,6 @@ main =
 initModel : Model
 initModel =
   { shapes = []
-  , pieceInterval = 1
   , blockMap = matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)
   , state = Playing
   }
@@ -119,16 +122,17 @@ dropShapesByOnePixel model =
 
     (state, cmd) =
       if isStickedToGround then
-        let lastDroppedShape = List.filter (\s -> s.lastDropped) shapes |> List.head in
-          case lastDroppedShape of
-            Just s ->
-              if Shape.positionValid s then
-                (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
-              else
-                (Over, Cmd.none)
-            Nothing ->
-              (model.state, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
-              -- (model.state, Cmd.none)
+        let
+          lastDroppedShape = List.filter (\s -> s.lastDropped) shapes |> List.head in
+            case lastDroppedShape of
+              Just s ->
+                if Shape.positionValid s then
+                  (model.state, generateNewPieceCmd)
+                else
+                  (Over, Cmd.none)
+              Nothing ->
+                (model.state, generateNewPieceCmd)
+                -- (model.state, Cmd.none)
       else
         (model.state, Cmd.none)
   in
@@ -237,34 +241,61 @@ dropActiveShape model =
         (newModel, cmd)
 
 
+type alias XPosition =
+  { x_position : Int
+  }
+
+
+url : String
+url = "http://localhost:3000/tetrelm/games/2/moves/create"
+
+
+fetchShapeXPos : BlockMap -> ShapeType -> Cmd Msg
+fetchShapeXPos blockMap shapeType =
+  -- decodeString (field "x_position" int)
+  let
+    request =
+      Http.post url jsonBody (Json.Decode.field "x_position" Json.Decode.int)
+  in
+    Http.send (ShapeXPos shapeType) request
+
+
+jsonBody : Http.Body
+jsonBody =
+  Http.stringBody "application/json" " { \"selected_piece\": 3, \"board\": [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 1, 0 ] ] } "
+
+generateNewPieceCmd : Cmd Msg
+generateNewPieceCmd =
+  Random.generate (\a -> RandomShapeType (decodeShapeType a)) (Random.int 0 4)
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick time ->
       case model.state of
         Playing ->
-          dropShapesByOnePixel model
+          let (newModel, cmd) = dropShapesByOnePixel model in
+            (newModel, cmd)
         Over ->
           finish model
-    RandomXPos xPos ->
-      (model, Random.generate (RandomType xPos) (Random.int 1 5))
-    RandomType xPos encodedShapeType ->
-      let
-        shapeType = decodeShapeType encodedShapeType
-      in
-        (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
+    RandomShapeType shapeType ->
+        (model, fetchShapeXPos model.blockMap shapeType)
+    ShapeXPos shapeType (Ok xPos) ->
+      (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
+    ShapeXPos shapeType (Err _) ->
+      (model, Cmd.none)
     RandomRotate xPos shapeType rotateAmount ->
       let newShape = generateNewPiece xPos shapeType rotateAmount model in
         if Shape.isXPosAllowed xPos newShape then
-          ({ model | pieceInterval = 1, shapes = (newShape :: model.shapes) }, Cmd.none )
+          ({ model | shapes = (newShape :: model.shapes) }, Rest.sendModel model )
         else
-          let cmd = Random.generate RandomXPos (Random.int 1 (board.width//board.tileSize)) in
-            (model, cmd)
+          (model, generateNewPieceCmd)
     KeyUp key ->
       if key == spaceKey then
         dropActiveShape model
       else if key == enterKey then
-        (model, Random.generate RandomXPos (Random.int 0 (board.width//board.tileSize)))
+        (model, generateNewPieceCmd)
       else if key == leftKey then
         (movePiece model Left model.blockMap, Cmd.none)
       else if key == rightKey then
