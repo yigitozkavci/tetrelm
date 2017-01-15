@@ -15,8 +15,6 @@ import Keyboard exposing (KeyCode)
 import Array exposing (Array)
 import Char exposing (toCode)
 import Rest exposing (..)
-import Json.Decode exposing(..)
-import Http
 
 import Collage exposing
   ( Form
@@ -263,35 +261,10 @@ type alias XPosition =
   }
 
 
-url : String
-url = "http://localhost:3000/tetrelm/games/2/moves/create"
-
-
-fetchShapeXPos : GameId -> BlockMap -> ShapeType -> Cmd Msg
-fetchShapeXPos gameId blockMap shapeType =
-  let
-    request =
-      Http.post (getUrl (CreateMoveUrl gameId)) jsonBody (Json.Decode.field "x_position" Json.Decode.int)
-  in
-    Http.send (ShapeXPos shapeType) request
-
-
-jsonBody : Http.Body
-jsonBody =
-  Http.stringBody "application/json" " { \"selected_piece\": 3, \"board\": [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 1, 0 ] ] } "
-
 generateNewPieceCmd : Cmd Msg
 generateNewPieceCmd =
   Random.generate (\a -> RandomShapeType (decodeShapeType a)) (Random.int 0 4)
 
-
-fetchGameId : Cmd Msg
-fetchGameId =
-  let
-    request =
-      Http.post (getUrl CreateNewGameUrl) Http.emptyBody (Json.Decode.field "game_id" Json.Decode.int)
-  in
-    Http.send FetchGameId request
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
