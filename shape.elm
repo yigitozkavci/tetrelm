@@ -120,3 +120,22 @@ rotateBy rotateAmount shape =
     rotateBy (rotateAmount - 1) { shape | blockLocations = (List.map Location.rotate shape.blockLocations) }
 
 
+encodeShapeType : ShapeType -> Int
+encodeShapeType shapeType =
+  case shapeType of
+    L ->  1
+    RL -> 2
+    I ->  3
+    S ->  4
+    T ->  5
+
+
+decodeShapeType : Int -> ShapeType
+decodeShapeType encodedType =
+  case encodedType of
+    1 -> L
+    2 -> RL
+    3 -> I
+    4 -> S
+    5 -> T
+    _ -> L

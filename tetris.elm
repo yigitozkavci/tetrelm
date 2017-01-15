@@ -150,17 +150,6 @@ feedShapeToBlockMap shape blockMap =
     Matrix.mapWithLocation (\loc val -> if List.member loc newShape.blockLocations then 1 else val) blockMap
 
 
-decodeShapeType : Int -> ShapeType
-decodeShapeType encodedType =
-  case encodedType of
-    1 -> L
-    2 -> RL
-    3 -> I
-    4 -> S
-    5 -> T
-    _ -> L
-
-
 generateNewPiece : Int -> ShapeType -> Int -> Model -> Shape
 generateNewPiece xPos shapeType rotateAmount model =
   { x = xPos, y = 0
@@ -263,7 +252,7 @@ type alias XPosition =
 
 generateNewPieceCmd : Cmd Msg
 generateNewPieceCmd =
-  Random.generate (\a -> RandomShapeType (decodeShapeType a)) (Random.int 0 4)
+  Random.generate (\a -> RandomShapeType (Shape.decodeShapeType a)) (Random.int 0 4)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)

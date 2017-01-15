@@ -2,10 +2,15 @@ module Rest exposing (..)
 import Types exposing (..)
 import Http
 import Json.Decode exposing(..)
+import Json.Encode exposing(..)
+import Matrix
+import Shape
+
 
 type UrlType =
   CreateNewGameUrl
   | CreateMoveUrl (Maybe Int)
+
 
 getUrl : UrlType -> String
 getUrl urlType =
@@ -17,9 +22,26 @@ getUrl urlType =
     CreateMoveUrl (Just gameId) ->
       "http://localhost:3000/tetrelm/games/" ++ toString gameId ++ "/moves/create"
 
+
+encodeSelectedPiece : ShapeType -> Json.Encode.Value
+encodeSelectedPiece shapeType =
+  Shape.encodeShapeType shapeType 
+    |> Json.Encode.int
+
+
+encodeBoard : BlockMap -> Json.Encode.Value
+encodeBoard blockMap =
+  blockMap
+    |> Matrix.map Json.Encode.int
+    |> Matrix.toList
+    |> List.map Json.Encode.list
+    |> Json.Encode.list
+
+
 createMoveJsonBody : ShapeType -> BlockMap -> Http.Body
 createMoveJsonBody shapeType blockMap =
-  Http.stringBody "application/json" " { \"selected_piece\": 3, \"board\": [ [ 0, 0, 0, 0, 0 ], [ 0, 0, 0, 1, 0 ] ] } "
+  Json.Encode.object [("selected_piece", encodeSelectedPiece shapeType), ("board", encodeBoard blockMap)]
+    |> Http.jsonBody
 
 
 xPositionDecoder : Decoder Int
