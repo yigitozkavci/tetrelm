@@ -13,6 +13,7 @@ type Msg =
   | KeyUp KeyCode
   | RandomShapeType ShapeType
   | StartGame
+  | FetchGameId (Result Http.Error Int)
 
 
 type Direction = DirectionLeft | DirectionRight
@@ -29,6 +30,9 @@ type KeyType =
   | Enter
 
 
+type alias GameId = Maybe Int
+
+
 type GameState = NotStarted | Playing | Over
 
 
@@ -36,6 +40,7 @@ type alias Model =
   { shapes : List Shape
   , blockMap : BlockMap
   , state : GameState
+  , gameId : Maybe Int
   }
 
 

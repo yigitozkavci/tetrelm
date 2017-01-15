@@ -14,7 +14,7 @@ import Random
 import Keyboard exposing (KeyCode)
 import Array exposing (Array)
 import Char exposing (toCode)
-import Rest
+import Rest exposing (..)
 import Json.Decode exposing(..)
 import Http
 
@@ -34,6 +34,7 @@ initModel =
   { shapes = []
   , blockMap = matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)
   , state = NotStarted
+  , gameId = Nothing
   }
 
 
@@ -266,11 +267,11 @@ url : String
 url = "http://localhost:3000/tetrelm/games/2/moves/create"
 
 
-fetchShapeXPos : BlockMap -> ShapeType -> Cmd Msg
-fetchShapeXPos blockMap shapeType =
+fetchShapeXPos : GameId -> BlockMap -> ShapeType -> Cmd Msg
+fetchShapeXPos gameId blockMap shapeType =
   let
     request =
-      Http.post url jsonBody (Json.Decode.field "x_position" Json.Decode.int)
+      Http.post (getUrl (CreateMoveUrl gameId)) jsonBody (Json.Decode.field "x_position" Json.Decode.int)
   in
     Http.send (ShapeXPos shapeType) request
 
@@ -284,11 +285,23 @@ generateNewPieceCmd =
   Random.generate (\a -> RandomShapeType (decodeShapeType a)) (Random.int 0 4)
 
 
+fetchGameId : Cmd Msg
+fetchGameId =
+  let
+    request =
+      Http.post (getUrl CreateNewGameUrl) Http.emptyBody (Json.Decode.field "game_id" Json.Decode.int)
+  in
+    Http.send FetchGameId request
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     StartGame ->
-      ({ model | state = Playing }, generateNewPieceCmd)
+      ({ model | state = Playing }, fetchGameId)
+    FetchGameId (Ok gameId) ->
+      ({ model | gameId = Just gameId }, generateNewPieceCmd)
+    FetchGameId (Err _) ->
+      (model, Cmd.none)
     Tick time ->
       case model.state of
         NotStarted ->
@@ -299,7 +312,7 @@ update msg model =
         Over ->
           finish model
     RandomShapeType shapeType ->
-        (model, fetchShapeXPos model.blockMap shapeType)
+        (model, fetchShapeXPos model.gameId model.blockMap shapeType)
     ShapeXPos shapeType (Ok xPos) ->
       (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
     ShapeXPos shapeType (Err _) ->
@@ -307,7 +320,7 @@ update msg model =
     RandomRotate xPos shapeType rotateAmount ->
       let newShape = generateNewPiece xPos shapeType rotateAmount model in
         if Shape.isXPosAllowed xPos newShape then
-          ({ model | shapes = (newShape :: model.shapes) }, Rest.sendModel model )
+          ({ model | shapes = (newShape :: model.shapes) }, Cmd.none)
         else
           (model, generateNewPieceCmd)
     KeyUp key ->
