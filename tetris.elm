@@ -267,8 +267,15 @@ update msg model =
           finish model
     RandomShapeType shapeType ->
         (model, fetchShapeXPos model.gameId model.blockMap shapeType)
-    ShapeXPos shapeType (Ok xPos) ->
-      (model, Random.generate (RandomRotate xPos shapeType) (Random.int 0 3))
+    ShapeXPos shapeType (Ok xPosAndRotateAmount) ->
+      let
+        (xPos, rotateAmount) = (xPosAndRotateAmount.xPosition, xPosAndRotateAmount.rotateAmount)
+        newShape = generateNewPiece xPos shapeType rotateAmount model
+      in
+        if Shape.isXPosAllowed xPos newShape then
+          ({ model | shapes = (newShape :: model.shapes) }, Cmd.none)
+        else
+          (model, generateNewPieceCmd)
     ShapeXPos shapeType (Err _) ->
       (model, Cmd.none)
     RandomRotate xPos shapeType rotateAmount ->

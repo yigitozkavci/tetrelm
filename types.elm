@@ -8,13 +8,19 @@ import Http exposing (..)
 type Msg =
   Tick Time
   | EmptyMsg
-  | ShapeXPos ShapeType (Result Error Int)
+  | ShapeXPos ShapeType (Result Error XPosAndRotateAmount)
   | RandomRotate Int ShapeType Int
   | KeyUp KeyCode
   | RandomShapeType ShapeType
   | StartGame
   | FetchGameId (Result Error Int)
   | FinishGame (Result Error ())
+
+
+type alias XPosAndRotateAmount =
+  { xPosition : Int
+  , rotateAmount : Int
+  }
 
 
 type Direction = DirectionLeft | DirectionRight

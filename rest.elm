@@ -67,9 +67,11 @@ updateGameTime gameTime gameId =
     Http.send FinishGame request
 
 
-xPositionDecoder : Decoder Int
-xPositionDecoder =
-  Json.Decode.field "x_position" Json.Decode.int
+xPosAndRotateAmountDecoder : Decoder XPosAndRotateAmount
+xPosAndRotateAmountDecoder =
+  Json.Decode.map2 XPosAndRotateAmount
+    (Json.Decode.field "x_position" Json.Decode.int)
+    (Json.Decode.field "rotate_amount" Json.Decode.int)
 
 
 fetchGameId : Cmd Msg
@@ -85,7 +87,7 @@ fetchShapeXPos : GameId -> BlockMap -> ShapeType -> Cmd Msg
 fetchShapeXPos gameId blockMap shapeType =
   let
     request =
-      Http.post (getUrl <| CreateMoveUrl gameId) (createMoveJsonBody shapeType blockMap) (xPositionDecoder)
+      Http.post (getUrl <| CreateMoveUrl gameId) (createMoveJsonBody shapeType blockMap) (xPosAndRotateAmountDecoder)
   in
     Http.send (ShapeXPos shapeType) request
 
