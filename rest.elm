@@ -9,7 +9,8 @@ import Shape
 
 type UrlType =
   CreateNewGameUrl
-  | CreateMoveUrl (Maybe Int)
+  | CreateMoveUrl Int
+  | UpdateGameTimeUrl Int
 
 
 getUrl : UrlType -> String
@@ -17,10 +18,10 @@ getUrl urlType =
   case urlType of
     CreateNewGameUrl ->
       "http://localhost:3000/tetrelm/games/create"
-    CreateMoveUrl Nothing ->
-      ""
-    CreateMoveUrl (Just gameId) ->
+    CreateMoveUrl gameId ->
       "http://localhost:3000/tetrelm/games/" ++ toString gameId ++ "/moves/create"
+    UpdateGameTimeUrl gameId ->
+      "http://localhost:3000/tetrelm/games/" ++ toString gameId ++ "/update"
 
 
 encodeSelectedPiece : ShapeType -> Json.Encode.Value
@@ -42,6 +43,28 @@ createMoveJsonBody : ShapeType -> BlockMap -> Http.Body
 createMoveJsonBody shapeType blockMap =
   Json.Encode.object [("selected_piece", encodeSelectedPiece shapeType), ("board", encodeBoard blockMap)]
     |> Http.jsonBody
+
+
+put : String -> Http.Body -> Http.Request ()
+put url body =
+  Http.request
+    { method = "PUT"
+    , headers = []
+    , url = url
+    , body = body
+    , expect = Http.expectStringResponse (\_ -> Ok ())
+    , timeout = Nothing
+    , withCredentials = False
+    }
+
+
+updateGameTime : GameTime -> GameId -> Cmd Msg
+updateGameTime gameTime gameId =
+  let
+    request =
+      put (getUrl <| UpdateGameTimeUrl gameId) (Http.jsonBody (Json.Encode.object [("time", Json.Encode.int gameTime)]))
+  in
+    Http.send FinishGame request
 
 
 xPositionDecoder : Decoder Int

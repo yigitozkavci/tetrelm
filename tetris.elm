@@ -23,16 +23,19 @@ import Collage exposing
   , move
   )
 
+
 main =
   Html.program
     { init = init, update = update, subscriptions = subscriptions, view = view }
+
 
 initModel : Model
 initModel =
   { shapes = []
   , blockMap = matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)
   , state = NotStarted
-  , gameId = Nothing
+  , gameId = -1
+  , gameTime = 0
   }
 
 
@@ -89,6 +92,7 @@ clearRowSeq blockMap row =
     else
       clearRowSeq blockMap (row - 1)
 
+
 clearIfNecessary : BlockMap -> BlockMap
 clearIfNecessary blockMap =
   clearRowSeq blockMap (board.height//board.tileSize)
@@ -134,7 +138,7 @@ dropShapesByOnePixel model =
       else
         (model.state, Cmd.none)
   in
-    ({ model | shapes = shapes, blockMap = (clearIfNecessary blockMap), state = state }, cmd)
+    ({ model | shapes = shapes, blockMap = (clearIfNecessary blockMap), state = state, gameTime = model.gameTime + 1 }, cmd)
 
 
 onlyActive : List Shape -> Maybe Shape
@@ -203,33 +207,21 @@ getKeyCode key =
       32
     Enter ->
       13
-  
-restartKey =
-  toCode 'W'
 
-leftKey =
-  37
 
-upKey =
-  38
+emptyBoard : BlockMap
+emptyBoard =
+  (Matrix.matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0))
 
-rightKey =
-  39
 
-downKey =
-  40
-
-spaceKey =
-  32
-
-enterKey =
-  13
+finishGameCmd : GameTime -> GameId -> Cmd Msg
+finishGameCmd gameTime gameId =
+  updateGameTime gameTime gameId
 
 
 finish : Model -> (Model, Cmd Msg)
 finish model =
-  -- ({ model | shapes = [], blockMap = (Matrix.matrix (board.width//board.tileSize) (board.height//board.tileSize) (\_ -> 0)) }, Cmd.none)
-  ({ model | shapes = [] }, Cmd.none)
+  ({ model | state = Playing, shapes = [], gameTime = 0, blockMap = emptyBoard }, finishGameCmd model.gameTime model.gameId)
 
 
 dropActiveShape : Model -> (Model, Cmd Msg)
@@ -261,7 +253,7 @@ update msg model =
     StartGame ->
       ({ model | state = Playing }, fetchGameId)
     FetchGameId (Ok gameId) ->
-      ({ model | gameId = Just gameId }, generateNewPieceCmd)
+      ({ model | gameId = gameId }, generateNewPieceCmd)
     FetchGameId (Err _) ->
       (model, Cmd.none)
     Tick time ->
@@ -286,7 +278,7 @@ update msg model =
         else
           (model, generateNewPieceCmd)
     KeyUp key ->
-      if key == spaceKey then
+      if key == getKeyCode Space then
         dropActiveShape model
       else if key == getKeyCode Left then
         (movePiece model DirectionLeft model.blockMap, Cmd.none)
@@ -298,6 +290,10 @@ update msg model =
         dropShapesByOnePixel model
       else
         (model, Cmd.none)
+    FinishGame (Ok _) ->
+      (model, fetchGameId)
+    FinishGame (Err _) ->
+      (model, Cmd.none)
     EmptyMsg ->
       (model, Cmd.none)
 
@@ -335,6 +331,8 @@ startButton model =
     _ ->
       div [] []
 
+
+view : Model -> Html Msg
 view model =
   div []
     [ tetrisHtml model
